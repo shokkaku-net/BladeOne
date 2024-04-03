@@ -122,7 +122,6 @@ class OtherTest extends AbstractBladeTestCase
         $this->assertEquals('aaa"bcd', $this->blade->addInsideQuote('aaa"', "bcd"));
         $this->assertEquals('bcd', $this->blade->addInsideQuote('', "bcd"));
         $this->assertEquals('"bcd"', $this->blade->addInsideQuote('""', "bcd"));
-
         $arr=$this->blade->parseArgs('a1=1 a2=function(1 2 3)', ' ');
         $compare=['a1'=>'1','a2'=>'function(1 2 3)'];
         $this->assertEquals($compare, $arr);
