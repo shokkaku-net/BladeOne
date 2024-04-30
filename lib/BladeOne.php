@@ -187,7 +187,7 @@ class BladeOne
     /** @var string it is a relative path calculated between baseUrl and the current url. Example ../../ */
     protected string $relativePath = '';
     /** @var string[] Dictionary of assets */
-    protected ?array $assetDict;
+    protected array $assetDict = [];
     /** @var bool if true then it removes tabs and unneeded spaces */
     protected bool $optimize = true;
     /** @var bool if false, then the template is not compiled (but executed on memory). */
