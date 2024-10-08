@@ -49,9 +49,10 @@ BLADE;
 @endswitch
 BLADE;
         $this->blade->setCommentMode(2);
-        //$this->assertEqualsIgnoringWhitespace("First case...", $this->blade->compileString($bladeSource));
+        //$this->assertEquals("First case...", $this->blade->compileString($bladeSource));
         $this->assertEqualsIgnoringWhitespace("First case...", $this->blade->runString($bladeSource, ['i' => 1]));
         $this->assertEqualsIgnoringWhitespace("Second case...", $this->blade->runString($bladeSource, ['i' => 2]));
         $this->assertEqualsIgnoringWhitespace("Default case...", $this->blade->runString($bladeSource, ['i' => 3]));
+        $this->blade->setCommentMode(0);
     }
 }

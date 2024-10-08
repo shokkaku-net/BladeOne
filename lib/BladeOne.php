@@ -32,16 +32,16 @@ use InvalidArgumentException;
  *
  * @package   BladeOne
  * @author    Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @copyright Copyright (c) 2016-2023 Jorge Patricio Castro Castillo MIT License.
+ * @copyright Copyright (c) 2016-2024 Jorge Patricio Castro Castillo MIT License.
  *            Don't delete this comment, its part of the license.
  *            Part of this code is based in the work of Laravel PHP Components.
- * @version   4.14
+ * @version   4.15.1
  * @link      https://github.com/EFTEC/BladeOne
  */
 class BladeOne
 {
     //<editor-fold desc="fields">
-    public const VERSION = '4.14';
+    public const VERSION = '4.15.1';
     /** @var int BladeOne reads if the compiled file has changed. If it has changed,then the file is replaced. */
     public const MODE_AUTO = 0;
     /** @var int Then compiled file is always replaced. It's slow and it's useful for development. */
@@ -81,8 +81,8 @@ class BladeOne
     protected array $hierarcy = [];
     /**
      * @var callable[] associative array with the callable methods. The key must be the name of the method<br>
-     *                 <b>example:</b><br>
-     *                 ```php
+     *                 **example:**<br>
+     *                 ```
      *                 $this->methods['compileAlert']=static function(?string $expression=null) { return };
      *                 $this->methods['runtimeAlert']=function(?array $arguments=null) { return };
      *                 ```
@@ -112,7 +112,7 @@ class BladeOne
      * @var callable[] It allows to parse the compiled output using a function.
      *      This function doesn't require to return a value<br>
      *      **Example:** this converts all compiled result in uppercase (note, content is a ref)
-     *      ```php
+     *      ```
      *      $this->compileCallbacks[]= static function (&$content, $templatename=null) {
      *      $content=strtoupper($content);
      *      };
@@ -876,11 +876,7 @@ class BladeOne
     public function addAssetDict($name, $url = ''): void
     {
         if (\is_array($name)) {
-            if ($this->assetDict === null) {
-                $this->assetDict = $name;
-            } else {
-                $this->assetDict = \array_merge($this->assetDict, $name);
-            }
+            $this->assetDict = \array_merge($this->assetDict, $name);
         } else {
             $this->assetDict[$name] = $url;
         }
@@ -2895,7 +2891,7 @@ class BladeOne
             case 1:
                 return \preg_replace($pattern, '<!-- $1 -->', $value);
             default:
-                return "";
+                return \preg_replace($pattern, '', $value);
         }
     }
 
@@ -2968,7 +2964,7 @@ class BladeOne
          *                    [3]=...
          *                    [4]=content
          *
-         * @return mixed|string
+         * @return string
          */
 
         $callback = function($match) {
@@ -2985,7 +2981,8 @@ class BladeOne
 
     }
 
-    protected function parseParams($params) {
+    protected function parseParams($params): string
+    {
         preg_match_all('/([a-z-0-9:]*?)\s*?=\s*?(.+?)(\s|$)/ms', $params, $matches);
         $paramsCompiled = [];
         foreach ($matches[1] as $i => $key) {
