@@ -26,6 +26,7 @@ use Closure;
 use Countable;
 use Exception;
 use InvalidArgumentException;
+
 /**
  * BladeOne - A Blade Template implementation in a single file
  *
@@ -34,13 +35,13 @@ use InvalidArgumentException;
  * @copyright Copyright (c) 2016-2023 Jorge Patricio Castro Castillo MIT License.
  *            Don't delete this comment, its part of the license.
  *            Part of this code is based in the work of Laravel PHP Components.
- * @version   4.13
+ * @version   4.14
  * @link      https://github.com/EFTEC/BladeOne
  */
 class BladeOne
 {
     //<editor-fold desc="fields">
-    public const VERSION = '4.13';
+    public const VERSION = '4.14';
     /** @var int BladeOne reads if the compiled file has changed. If it has changed,then the file is replaced. */
     public const MODE_AUTO = 0;
     /** @var int Then compiled file is always replaced. It's slow and it's useful for development. */
@@ -87,8 +88,8 @@ class BladeOne
      *                 ```
      */
     protected array $methods = [];
-    protected array $controlStack=[['name'=>'','args'=>[],'parent'=>0]];
-    protected int $controlStackParent=0;
+    protected array $controlStack = [['name' => '', 'args' => [], 'parent' => 0]];
+    protected int $controlStackParent = 0;
     /** @var BladeOne it is used to get the last instance */
     public static BladeOne $instance;
     /**
@@ -96,12 +97,12 @@ class BladeOne
      * inside the "include" statement.<br>
      * If false (default value), then the variables defined in the "include" as arguments are defined globally.<br>
      * **Example: (includeScope=false)**<br>
-     * ```php
+     * ```
      * @include("template",['a1'=>'abc']) // a1 is equals to abc
      * @include("template",[]) // a1 is equals to abc
      * ```
      * **Example: (includeScope=true)**<br>
-     * ```php
+     * ```
      * @include("template",['a1'=>'abc']) // a1 is equals to abc
      * @include("template",[]) // a1 is not defined
      * ```
@@ -198,6 +199,7 @@ class BladeOne
     protected array $rawTags = ['{!!', '!!}'];
     /** @var array Array of opening and closing tags for regular echos. */
     protected array $contentTags = ['{{', '}}'];
+    protected int $commentMode = 0;
     /** @var array Array of opening and closing tags for escaped echos. */
     protected array $escapedTags = ['{{{', '}}}'];
     /** @var string The "regular" / legacy echo string format. */
@@ -236,14 +238,26 @@ class BladeOne
     //</editor-fold>
     //<editor-fold desc="constructor">
     /**
-     * Bob the constructor.
-     * The folder at $compiledPath is created in case it doesn't exist.
+     * It creates an instance of BladeOne. The folder at $compiledPath is created in case it doesn't exist.<br>
+     * **Example**
+     * ```
+     * $blade=new BladeOne("pathtemplate","pathcompile",BladeOne::MODE_AUTO,2);
+     * ```
      *
-     * @param string|array $templatePath If null then it uses (caller_folder)/views
-     * @param string       $compiledPath If null then it uses (caller_folder)/compiles
-     * @param int          $mode         =[BladeOne::MODE_AUTO,BladeOne::MODE_DEBUG,BladeOne::MODE_FAST,BladeOne::MODE_SLOW][$i]
+     * @param null $templatePath If null then it uses (caller_folder)/views
+     * @param null $compiledPath If null then it uses (caller_folder)/compiles
+     * @param int  $mode         =[BladeOne::MODE_AUTO,BladeOne::MODE_DEBUG,BladeOne::MODE_FAST,BladeOne::MODE_SLOW][$i]<br>
+     *                           **BladeOne::MODE_AUTO** (default mode)<br>
+     *                           **BladeOne::MODE_DEBUG** errors will be more verbose, and it will compile code every
+     *                           time<br>
+     *                           **BladeOne::MODE_FAST** it will not check if the compiled file exists<br>
+     *                           **BladeOne::MODE_SLOW** it will compile the code everytime<br>
+     * @param int  $commentMode  =[0,1,2][$i] <br>
+     *                           **0** comments are generated as php code.<br>
+     *                           **1** comments are generated as html code<br>
+     *                           **2** comments are ignored (no code is generated)<br>
      */
-    public function __construct($templatePath = null, $compiledPath = null, $mode = 0)
+    public function __construct($templatePath = null, $compiledPath = null, $mode = 0, $commentMode = 0)
     {
         if ($templatePath === null) {
             $templatePath = \getcwd() . '/views';
@@ -254,6 +268,7 @@ class BladeOne
         $this->templatePath = (is_array($templatePath)) ? $templatePath : [$templatePath];
         $this->compiledPath = $compiledPath;
         $this->setMode($mode);
+        $this->setCommentMode($commentMode);
         self::$instance = $this;
         $this->authCallBack = function(
             $action = null,
@@ -296,17 +311,33 @@ class BladeOne
     }
 
     /**
-     * It gets an instance of Bladeone. If none, then it will create a new one witht eh default data.
+     * It gets an instance of Bladeone or will create a new one. This function is useful if you want a singleton<br>
+     * **Example**
+     * ```
+     * $blade=BladeOne::getInstance();
+     * $blade=BladeOne::getInstance("templatepath","compilepath",BladeOne::MODE_AUTO,0);
+     * ```
      * @param string|array $templatePath If null then it uses (caller_folder)/views
      * @param string       $compiledPath If null then it uses (caller_folder)/compiles
-     * @param int          $mode
-     *                                   =[BladeOne::MODE_AUTO,BladeOne::MODE_DEBUG,BladeOne::MODE_FAST,BladeOne::MODE_SLOW][$i]
+     * @param int          $mode         =[BladeOne::MODE_AUTO,BladeOne::MODE_DEBUG,BladeOne::MODE_FAST,BladeOne::MODE_SLOW][$i]<br>
+     *                                   **BladeOne::MODE_AUTO** (default mode)<br>
+     *                                   **BladeOne::MODE_DEBUG** errors will be more
+     *                                   verbose, and it will compile code every time<br>
+     *                                   **BladeOne::MODE_FAST** it will not check if the
+     *                                   compiled file exists<br>
+     *                                   **BladeOne::MODE_SLOW** it will compile the code
+     *                                   everytime<br>
+     * @param int          $commentMode  =[0,1,2][$i] <br>
+     *                                   **0** comments are generated as php code.<br>
+     *                                   **1** comments are generated as html code<br>
+     *                                   **2** comments are ignored (no code is
+     *                                   generated)<br>
      * @return BladeOne
      */
-    public static function getInstance($templatePath = null, $compiledPath = null, $mode = 0): BladeOne
+    public static function getInstance($templatePath = null, $compiledPath = null, $mode = 0, $commentMode = 0): BladeOne
     {
         if (self::$instance === null) {
-            new self($templatePath, $compiledPath, $mode);
+            new self($templatePath, $compiledPath, $mode, $commentMode);
         }
         return self::$instance;
     }
@@ -314,43 +345,48 @@ class BladeOne
     /**
      * It adds a control to the stack<br>
      * **Example:**<br>
-     * ```php
+     * ```
      * $this->addControlStackChild('alert',['message'=>'hello']);
      * ```
      * @param string $name the nametag of the stack
      * @param array  $args
      * @return void
      */
-    public function addControlStackChild(string $name,array $args): void
+    public function addControlStackChild(string $name, array $args): void
     {
-        $this->controlStack[]=['name'=>$name,'args'=>$args,'parent'=>$this->controlStackParent];
-        $this->controlStackParent=array_key_last($this->controlStack);
+        $this->controlStack[] = ['name' => $name, 'args' => $args, 'parent' => $this->controlStackParent];
+        $this->controlStackParent = array_key_last($this->controlStack);
     }
-    public function addControlStackSibling(string $name,array $args): void
+
+    public function addControlStackSibling(string $name, array $args): void
     {
-        $grandparent=$this->controlStack[$this->controlStackParent]['parent'];
-        $this->controlStack[]=['name'=>$name,'args'=>$args,'parent'=>$grandparent];
+        $grandparent = $this->controlStack[$this->controlStackParent]['parent'];
+        $this->controlStack[] = ['name' => $name, 'args' => $args, 'parent' => $grandparent];
     }
 
     /**
      * It returns the lastest control from the stack and removes it.
      * @return mixed|null
      */
-    public function closeControlStack() {
-        $this->controlStackParent=$this->controlStack[$this->controlStackParent]['parent'];
+    public function closeControlStack()
+    {
+        $this->controlStackParent = $this->controlStack[$this->controlStackParent]['parent'];
         return array_pop($this->controlStack);
     }
+
     /**
      * It removes the last parent and returns the new parent (the previous grandparent)<br>
      * Usually this method and closeControlStack must return the same if every child was closed correctly.
      * @return mixed|null
      */
-    public function closeControlStackParent() {
-        $grandparent=$this->controlStack[$this->controlStackParent]['parent'];
+    public function closeControlStackParent()
+    {
+        $grandparent = $this->controlStack[$this->controlStackParent]['parent'];
         unset($this->controlStack[$this->controlStackParent]);
-        $this->controlStackParent=$grandparent;
+        $this->controlStackParent = $grandparent;
         return $this->controlStack[$this->controlStackParent];
     }
+
     /**
      * It returns the last control from the stack without removing it.<br>
      * It is useful to get the previous control, it could be a parent or a sibling.
@@ -376,25 +412,25 @@ class BladeOne
      */
     public function clearControlStack(): void
     {
-        $this->controlStack=[['name'=>'','args'=>[],'parent'=>0]];
+        $this->controlStack = [['name' => '', 'args' => [], 'parent' => 0]];
     }
 
     /**
      * It adds a new method<br>
      * **Example:**<br>
-     * ```php
+     * ```
      * $this->addMethod('compile','alert',static function(?string $expression=null) { return });
      * $this->addMethod('runtime','alert',function(?array $arguments=null) { return });
      * ```
-     * @param string   $type=['compile','runtime'][$i] if you want to add a compile method or a runtime method
-     * @param string   $name the name of the method. Commonly it is in lowercase.
+     * @param string   $type     =['compile','runtime'][$i] if you want to add a compile method or a runtime method
+     * @param string   $name     the name of the method. Commonly it is in lowercase.
      * @param callable $callable the callable method
      * @return BladeOne
      */
-    public function addMethod(string $type,string $name,callable $callable): BladeOne
+    public function addMethod(string $type, string $name, callable $callable): BladeOne
     {
-        $fullName=$type.ucfirst($name);
-        $this->methods[$fullName]=$callable;
+        $fullName = $type . ucfirst($name);
+        $this->methods[$fullName] = $callable;
         return $this;
     }
 
@@ -404,7 +440,7 @@ class BladeOne
      */
     public function clearMethods(): self
     {
-        $this->methods=[];
+        $this->methods = [];
         return $this;
     }
     //</editor-fold>
@@ -479,7 +515,7 @@ class BladeOne
     /**
      * It converts a text into a php code with echo<br>
      * **Example:**<br>
-     * ```php
+     * ```
      * $this->wrapPHP('$hello'); // "< ?php echo $this->e($hello); ? >"
      * $this->wrapPHP('$hello',''); // < ?php echo $this->e($hello); ? >
      * $this->wrapPHP('$hello','',false); // < ?php echo $hello; ? >
@@ -1180,7 +1216,7 @@ class BladeOne
      * @return string
      * @throws Exception
      */
-    public function runChild($view,$variables = []): string
+    public function runChild($view, $variables = []): string
     {
         if (\is_array($variables)) {
             if ($this->includeScope) {
@@ -1189,9 +1225,9 @@ class BladeOne
                 $backup = null;
             }
             $newVariables = \array_merge($this->variables, $variables);
-            $backupControlStack=$this->controlStack;
-            $backupSectionStack=$this->sectionStack;
-            $backupLookStack=$this->loopsStack;
+            $backupControlStack = $this->controlStack;
+            $backupSectionStack = $this->sectionStack;
+            $backupLookStack = $this->loopsStack;
         } else {
             $this->showError('run/include', "RunChild: Include/run variables should be defined as array ['idx'=>'value']", true);
             return '';
@@ -1200,9 +1236,9 @@ class BladeOne
         if ($backup !== null) {
             $this->variables = $backup;
         }
-        $this->controlStack=$backupControlStack;
-        $this->sectionStack=$backupSectionStack;
-        $this->loopsStack=$backupLookStack;
+        $this->controlStack = $backupControlStack;
+        $this->sectionStack = $backupSectionStack;
+        $this->loopsStack = $backupLookStack;
         return $r;
     }
 
@@ -1282,7 +1318,7 @@ class BladeOne
      * It compares with wildcards (*) and returns true if both strings are equals<br>
      * The wildcards only works at the beginning and/or at the end of the string.<br>
      * **Example:**<br>
-     * ```php
+     * ```
      * Text::wildCardComparison('abcdef','abc*'); // true
      * Text::wildCardComparison('abcdef','*def'); // true
      * Text::wildCardComparison('abcdef','*abc*'); // true
@@ -1387,7 +1423,7 @@ class BladeOne
         $templateName = (empty($templateName)) ? $this->fileName : $templateName;
         $fullPath = $this->getTemplateFile($templateName);
         if ($fullPath == '') {
-            throw new \RuntimeException('Template not found: ' .($this->mode == self::MODE_DEBUG ? $this->templatePath[0].'/'.$templateName : $templateName));
+            throw new \RuntimeException('Template not found: ' . ($this->mode == self::MODE_DEBUG ? $this->templatePath[0] . '/' . $templateName : $templateName));
         }
         $style = $this->compileTypeFileName;
         if ($style === 'auto') {
@@ -1419,6 +1455,19 @@ class BladeOne
     public function setMode($mode): void
     {
         $this->mode = $mode;
+    }
+
+    /**
+     * It sets the comment mode<br>
+     * @param int $commentMode =[0,1,2][$i] <br>
+     *                         **0** comments are generated as php code.<br>
+     *                         **1** comments are generated as html code<br>
+     *                         **2** comments are ignored (no code is generated)<br>
+     * @return void
+     */
+    public function setCommentMode(int $commentMode): void
+    {
+        $this->commentMode = $commentMode;
     }
 
     /**
@@ -1743,11 +1792,11 @@ class BladeOne
 
     /**
      * @param mixed $object
-     * @param bool $jsconsole
+     * @param bool  $jsconsole
      * @return void
      * @throws \JsonException
      */
-    public function dump($object,bool $jsconsole = false): void
+    public function dump($object, bool $jsconsole = false): void
     {
         if (!$jsconsole) {
             echo '<pre>';
@@ -1799,7 +1848,7 @@ class BladeOne
     /**
      * Adds a global variable. If **$varname** is an array then it merges all the values.
      * **Example:**
-     * ```php
+     * ```
      * $this->share('variable',10.5);
      * $this->share('variable2','hello');
      * // or we could add the two variables as:
@@ -1819,7 +1868,7 @@ class BladeOne
     /**
      * Adds a global variable. If **$varname** is an array then it merges all the values.
      * **Example:**
-     * ```php
+     * ```
      * $this->share('variable',10.5);
      * $this->share('variable2','hello');
      * // or we could add the two variables as:
@@ -2138,7 +2187,7 @@ class BladeOne
      * It sets the current view<br>
      * This value is cleared when it is used (method run).<br>
      * **Example:**<br>
-     * ```php
+     * ```
      * $this->setView('folder.view')->share(['var1'=>20])->run(); // or $this->run('folder.view',['var1'=>20]);
      * ```
      *
@@ -2155,7 +2204,7 @@ class BladeOne
      * It injects a function, an instance, or a method class when a view is called.<br>
      * It could be stacked.   If it sets null then it clears all definitions.
      * **Example:**<br>
-     * ```php
+     * ```
      * $this->composer('folder.view',function($bladeOne) { $bladeOne->share('newvalue','hi there'); });
      * $this->composer('folder.view','namespace1\namespace2\SomeClass'); // SomeClass must exist, and it must have the
      *                                                                   // method 'composer'
@@ -2365,7 +2414,7 @@ class BladeOne
      * **Note:** The trailing slash is removed automatically if it's present.<br>
      * **Note:** We should not use arguments or name of the script.<br>
      * **Examples:**<br>
-     * ```php
+     * ```
      * $this->setBaseUrl('http://domain.dom/myblog');
      * $this->setBaseUrl('http://domain.dom/corporate/erp');
      * $this->setBaseUrl('http://domain.dom/blog.php?args=20'); // avoid this one.
@@ -2423,7 +2472,7 @@ class BladeOne
     /**
      * It returns the relative path to the base url or empty if not set<br>
      * **Example:**<br>
-     * ```php
+     * ```
      * // current url='http://domain.dom/page/subpage/web.php?aaa=2
      * $this->setBaseUrl('http://domain.dom/');
      * $this->getRelativePath(); // '../../'
@@ -2560,7 +2609,7 @@ class BladeOne
     /**
      * It adds a string inside a quoted string<br>
      * **example:**<br>
-     * ```php
+     * ```
      * $this->addInsideQuote("'hello'"," world"); // 'hello world'
      * $this->addInsideQuote("hello"," world"); // hello world
      * ```
@@ -2838,8 +2887,15 @@ class BladeOne
      */
     protected function compileComments($value): string
     {
-        $pattern = \sprintf('/%s--(.*?)--%s/s', $this->contentTags[0], $this->contentTags[1]);
-        return \preg_replace($pattern, $this->phpTag . '/*$1*/ ?>', $value);
+        $pattern = "/" . $this->contentTags[0] . "--(.*?)--" . $this->contentTags[1] . "/s";
+        switch ($this->commentMode) {
+            case 0:
+                return \preg_replace($pattern, $this->phpTag . '/*$1*/ ? >', $value);
+            case 1:
+                return \preg_replace($pattern, '<!-- $1 -->', $value);
+            default:
+                return "";
+        }
     }
 
     /**
@@ -2942,7 +2998,7 @@ class BladeOne
                         return $this->$nameMethod(static::get($match, 3));
                     }
                     $nameMethod = 'runtime' . \ucfirst($match[1]);
-                    $m4 = $match[4]??'';
+                    $m4 = $match[4] ?? '';
                     if (isset($this->methods[$nameMethod])) {
                         return $this->autoruntime($m4, $nameMethod);
                     }
@@ -2961,25 +3017,23 @@ class BladeOne
     /**
      * This function generates a php code to run a runtime method.
      * @param string|null $expression    the expression to add in the code.<br>
-     *                                For compile, it is of the type "($a2,"222")"
-     *                                For runtime, it is of the time "arg1=$a2 arg2="222""
+     *                                   For compile, it is of the type "($a2,"222")"
+     *                                   For runtime, it is of the time "arg1=$a2 arg2="222""
      * @param string      $nameFunction  The name of the function.
      * @param bool        $compileMethod If the method is a compiled method, or it is a runtime method.
      * @return string
      */
     protected function autoruntime(?string $expression, string $nameFunction, $compileMethod = false): string
     {
-
-        if ($compileMethod) {
-            return $this->wrapPHP("\$this->$nameFunction$expression", '', false);
-        }
-        $args = $this->parseArgs($expression, ' ','=',false);
-
+        $args = $this->parseArgs($expression, ' ', '=', false);
         $argsV = '[';
         foreach ($args as $k => $v) {
             $argsV .= "'$k'=>$v,";
         }
         $argsV .= ']';
+        if ($compileMethod) {
+            return $this->wrapPHP("\$this->$nameFunction($argsV)", '', false);
+        }
         return $this->wrapPHP("\$this->methods['$nameFunction']($argsV)", '', false);
     }
 
@@ -3107,7 +3161,7 @@ class BladeOne
      * It separates a string using a separator and an identifier<br>
      * It excludes quotes,double quotes and the "¬" symbol.<br>
      * **Example**<br>
-     * ```php
+     * ```
      * $this->parseArgs('a=2,b='a,b,c',d'); // ['a'=>'2','b'=>'a,b,c','d'=>null]
      * $this->parseArgs('a=2,b=c,d'); // ['a'=>'2','b'=>'c','d'=>null]
      * $this->parseArgs('a=2 b=c',' '); // ['a'=>'2','b'=>'c']
@@ -3174,7 +3228,6 @@ class BladeOne
             }
         }
         */
-
         foreach ($parts as $part) {
             $part = trim($part);
             if ($part) {
@@ -3283,7 +3336,7 @@ class BladeOne
      * If you want to escape the "|", then you could use "/|"<br>
      * **Note:** It only works if $this->pipeEnable=true and by default it is false<br>
      * **Example:**<br>
-     * ```php
+     * ```
      * $this->pipeDream('$name | strtolower | substr:0,4'); // strtolower(substr($name ,0,4)
      * $this->pipeDream('$name| getMode') // $this->getMode($name)
      * ```
@@ -4160,26 +4213,31 @@ class BladeOne
     {
         return $this->phpTag . "if$expression echo 'checked'; ?>";
     }
-    protected function compileStyle($expression) {
+
+    protected function compileStyle($expression): string
+    {
         return $this->phpTag . "echo 'class=\"'.\$this->runtimeStyle($expression).'\"' ?>";
     }
-    protected function compileClass($expression) {
+
+    protected function compileClass($expression): string
+    {
         return $this->phpTag . "echo 'class=\"'.\$this->runtimeStyle($expression).'\"'; ?>";
     }
-    protected function runtimeStyle($expression=null,$separator=' '): string
+
+    protected function runtimeStyle($expression = null, $separator = ' '): string
     {
-        if($expression===null) {
+        if ($expression === null) {
             return '';
         }
-        if(!is_array($expression)) {
-            $expression=[$expression];
+        if (!is_array($expression)) {
+            $expression = [$expression];
         }
-        $result='';
-        foreach($expression as $k=>$v) {
-            if(is_numeric($k)) {
-                $result.=$v.$separator;
-            } elseif($v) {
-                $result.=$k.$separator;
+        $result = '';
+        foreach ($expression as $k => $v) {
+            if (is_numeric($k)) {
+                $result .= $v . $separator;
+            } elseif ($v) {
+                $result .= $k . $separator;
             }
         }
         return trim($result);
@@ -4191,18 +4249,17 @@ class BladeOne
      * @param string $expression
      * @return string
      */
-     protected function compileSelected($expression): string
-     {
-         return $this->phpTag . "if$expression echo 'selected'; ?>";
-     }
+    protected function compileSelected($expression): string
+    {
+        return $this->phpTag . "if$expression echo 'selected'; ?>";
+    }
 
-     /**
+    /**
      * Compile the disabled statements into valid PHP.
      *
      * @param string $expression
      * @return string
      */
-
     protected function compileDisabled($expression): string
     {
         return $this->phpTag . "if$expression echo 'disabled'; ?>";
@@ -4214,7 +4271,6 @@ class BladeOne
      * @param string $expression
      * @return string
      */
-
     protected function compileReadonly($expression): string
     {
         return $this->phpTag . "if$expression echo 'readonly'; ?>";
@@ -4501,12 +4557,13 @@ class BladeOne
     }
     //</editor-fold>
 }
-if (! function_exists("array_key_last")) {
-    function array_key_last($array) {
+
+if (!function_exists("array_key_last")) {
+    function array_key_last($array)
+    {
         if (!is_array($array) || empty($array)) {
             return NULL;
         }
-
-        return array_keys($array)[count($array)-1];
+        return array_keys($array)[count($array) - 1];
     }
 }

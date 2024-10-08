@@ -9,7 +9,8 @@ class SwitchTest extends AbstractBladeTestCase {
     /**
      * @throws \Exception
      */
-    public function testSwitch() {
+    public function testSwitch(): void
+    {
         $bladeSource = /** @lang Blade */
             <<<'BLADE'
 @switch($i)
@@ -28,5 +29,29 @@ BLADE;
             $this->assertEqualsIgnoringWhitespace("First case...", $this->blade->runString($bladeSource, ['i' => 1]));
             $this->assertEqualsIgnoringWhitespace("Second case...", $this->blade->runString($bladeSource, ['i' => 2]));
             $this->assertEqualsIgnoringWhitespace("Default case...", $this->blade->runString($bladeSource, ['i' => 3]));
+    }
+    public function testSwitch2(): void
+    {
+        $bladeSource = /** @lang Blade */
+            <<<'BLADE'
+@switch($i)
+{{-- test comment --}}
+    @case(1)
+        First case...
+        @break
+
+    @case(2)
+        Second case...
+        @break
+
+    @default
+        Default case...
+@endswitch
+BLADE;
+        $this->blade->setCommentMode(2);
+        //$this->assertEqualsIgnoringWhitespace("First case...", $this->blade->compileString($bladeSource));
+        $this->assertEqualsIgnoringWhitespace("First case...", $this->blade->runString($bladeSource, ['i' => 1]));
+        $this->assertEqualsIgnoringWhitespace("Second case...", $this->blade->runString($bladeSource, ['i' => 2]));
+        $this->assertEqualsIgnoringWhitespace("Default case...", $this->blade->runString($bladeSource, ['i' => 3]));
     }
 }
