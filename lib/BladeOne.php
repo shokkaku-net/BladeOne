@@ -140,6 +140,7 @@ class BladeOne
     /** @var array All the available compiler functions. */
     protected array $compilers = [
         'Extensions',
+        'Components',
         'Statements',
         'Comments',
         'Echos',
@@ -2949,6 +2950,55 @@ class BladeOne
             throw new BadMethodCallException("Method [$method1] not defined");
         });
         return $methods;
+    }
+    /**
+     * Compile Blade components that start with "x-".
+     *
+     * @param string $value
+     *
+     * @return array|string|string[]|null
+     */
+    protected function compileComponents($value)
+    {
+        /**
+         * @param array $match
+         *                    [0]=full expression with @ and parenthesis
+         *                    [1]=Component name
+         *                    [2]=parameters
+         *                    [3]=...
+         *                    [4]=content
+         *
+         * @return mixed|string
+         */
+
+        $callback = function($match) {
+
+            if(static::contains($match[0], 'x-')) {
+                $match[4] = $this->compileComponents( $match[4]);
+            }
+            $paramsCompiled = $this->parseParams($match[2]);
+            $str =  "('components.".$match[1]."',".$paramsCompiled.")";
+
+            return self::compileComponent($str).$match[4].self::compileEndComponent();
+        };
+        return preg_replace_callback('/<x-([a-z0-9.-]+)(\s[^>]*)?(>((?:(?!<\/x-\1>).)*)<\/x-\1>|\/>)/ms', $callback, $value);
+
+    }
+
+    protected function parseParams($params) {
+        preg_match_all('/([a-z-0-9:]*?)\s*?=\s*?(.+?)(\s|$)/ms', $params, $matches);
+        $paramsCompiled = [];
+        foreach ($matches[1] as $i => $key) {
+            $value = str_replace('"','',$matches[2][$i]);
+            //its php code
+            if(self::startsWith($key, ':')) {
+                $key = substr($key, 1);
+                $paramsCompiled[] = '"'.$key. '"' . '=>' . $value;
+                continue;
+            }
+            $paramsCompiled[] = '"'.$key. '"' . '=>' .'"'. $value. '"';
+        }
+        return '['.implode(',',$paramsCompiled).']';
     }
 
     /**
