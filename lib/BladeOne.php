@@ -124,9 +124,9 @@ class BladeOne
     /** @var array All the finished, captured sections. */
     protected array $sections = [];
     /** @var string The template currently being compiled. For example "folder.template" */
-    protected string $fileName;
-    protected string $currentView;
-    protected string $notFoundPath;
+    protected string $fileName = "";
+    protected string $currentView = "";
+    protected string $notFoundPath = "";
     /** @var string File extension for the template files. */
     protected string $fileExtension = '.blade.php';
     /** @var array The stack of in-progress sections. */
@@ -145,7 +145,7 @@ class BladeOne
         'Echos',
     ];
     /** @var string|null it allows to set the stack */
-    protected ?string $viewStack;
+    protected ?string $viewStack = null;
     /** @var array used by $this->composer() */
     protected array $composerStack = [];
     /** @var array The stack of in-progress push sections. */
@@ -155,9 +155,9 @@ class BladeOne
     /** @var int The number of active rendering operations. */
     protected int $renderCount = 0;
     /** @var string[] Get the template path for the compiled views. */
-    protected array $templatePath;
+    protected array $templatePath = [];
     /** @var string|null Get the compiled path for the compiled views. If null then it uses the default path */
-    protected ?string $compiledPath;
+    protected ?string $compiledPath = null;
     /** @var string the extension of the compiled file. */
     protected string $compileExtension = '.bladec';
     /**
@@ -188,7 +188,7 @@ class BladeOne
     /** @var string it is a relative path calculated between baseUrl and the current url. Example ../../ */
     protected string $relativePath = '';
     /** @var string[] Dictionary of assets */
-    protected ?array $assetDict;
+    protected array $assetDict = [];
     /** @var bool if true then it removes tabs and unneeded spaces */
     protected bool $optimize = true;
     /** @var bool if false, then the template is not compiled (but executed on memory). */
