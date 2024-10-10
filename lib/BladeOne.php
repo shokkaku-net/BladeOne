@@ -2887,7 +2887,7 @@ class BladeOne
         $pattern = "/" . $this->contentTags[0] . "--(.*?)--" . $this->contentTags[1] . "/s";
         switch ($this->commentMode) {
             case 0:
-                return \preg_replace($pattern, $this->phpTag . '/*$1*/ ? >', $value);
+                return \preg_replace($pattern, $this->phpTag . '/*$1*/ ?>', $value);
             case 1:
                 return \preg_replace($pattern, '<!-- $1 -->', $value);
             default:
