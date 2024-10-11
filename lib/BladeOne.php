@@ -35,13 +35,13 @@ use InvalidArgumentException;
  * @copyright Copyright (c) 2016-2024 Jorge Patricio Castro Castillo MIT License.
  *            Don't delete this comment, its part of the license.
  *            Part of this code is based in the work of Laravel PHP Components.
- * @version   4.15.1
+ * @version   4.16
  * @link      https://github.com/EFTEC/BladeOne
  */
 class BladeOne
 {
     //<editor-fold desc="fields">
-    public const VERSION = '4.15.2';
+    public const VERSION = '4.16';
     /** @var int BladeOne reads if the compiled file has changed. If it has changed,then the file is replaced. */
     public const MODE_AUTO = 0;
     /** @var int Then compiled file is always replaced. It's slow and it's useful for development. */
@@ -52,6 +52,10 @@ class BladeOne
     public const MODE_DEBUG = 5;
     /** @var array Hold dictionary of translations */
     public static array $dictionary = [];
+    /** @var string It is used to mark the start of the stack (regexp). This value must not be used for other purposes */
+    public string $escapeStack0 = '-#1Z#-#2B#';
+    /** @var string It is used to mark the end of the stack (regexp). This value must not be used for other purposes */
+    public string $escapeStack1 = '#3R#-#4X#-';
     /** @var string PHP tag. You could use < ?php or < ? (if shorttag is active in php.ini) */
     public string $phpTag = '<?php '; // hello hello hello.
     /** @var string this line is used to easily echo a value */
@@ -766,7 +770,7 @@ class BladeOne
             $this->showError('runString', $lastError['message'] . ' ' . $lastError['type'], true);
             return '';
         }
-        return \ob_get_clean();
+        return $this->postRun(\ob_get_clean());
     }
 
     /**
@@ -1272,13 +1276,13 @@ class BladeOne
             }
             $result = $this->compile($view, $forced);
             if (!$this->isCompiled) {
-                return $this->evaluateText($result, $this->variables);
+                return $this->postRun($this->evaluateText($result, $this->variables));
             }
         } elseif ($view) {
             $this->fileName = $view;
         }
         $this->isRunFast = $runFast;
-        return $this->evaluatePath($this->getCompiledFile(), $this->variables);
+        return $this->postRun($this->evaluatePath($this->getCompiledFile(), $this->variables));
     }
 
     protected function evalComposer($view): void
@@ -2181,6 +2185,33 @@ class BladeOne
     }
 
     /**
+     * It executes a post run execution. It is used to display the stacks.
+     * @noinspection PhpVariableIsUsedOnlyInClosureInspection
+     */
+    protected function postRun(?string $string)
+    {
+        if (!$string) {
+            return $string;
+        }
+        if (strpos($string, $this->escapeStack0) === false) {
+            // nothing to post run
+            return $string;
+        }
+        $me = $this;
+        $result = preg_replace_callback('/' . $this->escapeStack0 . '\s?([A-Za-z0-9_:() ,*.@$]+)\s?' . $this->escapeStack1 . '/u',
+            static function($matches) use ($me) {
+                $l0 = strlen($me->escapeStack0);
+                $l1 = strlen($me->escapeStack1);
+                $item = trim(is_array($matches) ? substr($matches[0], $l0, -$l1) : substr($matches, $l0, -$l1));
+                $items = explode(',', $item);
+                return $me->yieldPushContent($items[0], $items[1] ?? null);
+                //return is_array($r) ? $flagtxt . json_encode($r) : $flagtxt . $r;
+            }, $string);
+        // we returned the escape character.
+        return $result;
+    }
+
+    /**
      * It sets the current view<br>
      * This value is cleared when it is used (method run).<br>
      * **Example:**<br>
@@ -2947,6 +2978,7 @@ class BladeOne
         });
         return $methods;
     }
+
     /**
      * Compile Blade components that start with "x-".
      *
@@ -2966,19 +2998,15 @@ class BladeOne
          *
          * @return string
          */
-
         $callback = function($match) {
-
-            if(static::contains($match[0], 'x-')) {
-                $match[4] = $this->compileComponents( $match[4]);
+            if (static::contains($match[0], 'x-')) {
+                $match[4] = $this->compileComponents($match[4]);
             }
             $paramsCompiled = $this->parseParams($match[2]);
-            $str =  "('components.".$match[1]."',".$paramsCompiled.")";
-
-            return self::compileComponent($str).$match[4].self::compileEndComponent();
+            $str = "('components." . $match[1] . "'," . $paramsCompiled . ")";
+            return self::compileComponent($str) . $match[4] . self::compileEndComponent();
         };
         return preg_replace_callback('/<x-([a-z0-9.-]+)(\s[^>]*)?(>((?:(?!<\/x-\1>).)*)<\/x-\1>|\/>)/ms', $callback, $value);
-
     }
 
     protected function parseParams($params): string
@@ -2986,16 +3014,16 @@ class BladeOne
         preg_match_all('/([a-z-0-9:]*?)\s*?=\s*?(.+?)(\s|$)/ms', $params, $matches);
         $paramsCompiled = [];
         foreach ($matches[1] as $i => $key) {
-            $value = str_replace('"','',$matches[2][$i]);
+            $value = str_replace('"', '', $matches[2][$i]);
             //its php code
-            if(self::startsWith($key, ':')) {
+            if (self::startsWith($key, ':')) {
                 $key = substr($key, 1);
-                $paramsCompiled[] = '"'.$key. '"' . '=>' . $value;
+                $paramsCompiled[] = '"' . $key . '"' . '=>' . $value;
                 continue;
             }
-            $paramsCompiled[] = '"'.$key. '"' . '=>' .'"'. $value. '"';
+            $paramsCompiled[] = '"' . $key . '"' . '=>' . '"' . $value . '"';
         }
-        return '['.implode(',',$paramsCompiled).']';
+        return '[' . implode(',', $paramsCompiled) . ']';
     }
 
     /**
@@ -4161,7 +4189,12 @@ class BladeOne
      */
     protected function compileStack($expression): string
     {
-        return $this->phpTagEcho . "\$this->yieldPushContent$expression; ?>";
+        return $this->phpTagEcho . " \$this->CompileStackFinal$expression; ?>";
+    }
+
+    public function CompileStackFinal($a = null, $b = null): string
+    {
+        return $this->escapeStack0 . $a . ',' . $b . $this->escapeStack1;
     }
 
     /**
