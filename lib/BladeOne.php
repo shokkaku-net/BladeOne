@@ -249,8 +249,8 @@ class BladeOne
      * $blade=new BladeOne("pathtemplate","pathcompile",BladeOne::MODE_AUTO,2);
      * ```
      *
-     * @param null $templatePath If null then it uses (caller_folder)/views
-     * @param null $compiledPath If null then it uses (caller_folder)/compiles
+     * @param string|null $templatePath If null then it uses (caller_folder)/views
+     * @param string|null $compiledPath If null then it uses (caller_folder)/compiles
      * @param int  $mode         =[BladeOne::MODE_AUTO,BladeOne::MODE_DEBUG,BladeOne::MODE_FAST,BladeOne::MODE_SLOW][$i]<br>
      *                           **BladeOne::MODE_AUTO** (default mode)<br>
      *                           **BladeOne::MODE_DEBUG** errors will be more verbose, and it will compile code every
