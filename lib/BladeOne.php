@@ -35,13 +35,13 @@ use InvalidArgumentException;
  * @copyright Copyright (c) 2016-2024 Jorge Patricio Castro Castillo MIT License.
  *            Don't delete this comment, its part of the license.
  *            Part of this code is based in the work of Laravel PHP Components.
- * @version   4.17
+ * @version   4.17.1
  * @link      https://github.com/EFTEC/BladeOne
  */
 class BladeOne
 {
     //<editor-fold desc="fields">
-    public const VERSION = '4.17';
+    public const VERSION = '4.17.1';
     /** @var int BladeOne reads if the compiled file has changed. If it has changed,then the file is replaced. */
     public const MODE_AUTO = 0;
     /** @var int Then compiled file is always replaced. It's slow and it's useful for development. */
@@ -100,16 +100,12 @@ class BladeOne
      * @var bool if true then the variables defined in the "include" as arguments are scoped to work only
      * inside the "include" statement.<br>
      * If false (default value), then the variables defined in the "include" as arguments are defined globally.<br>
-     * **Example: (includeScope=false)**<br>
-     * ```
-     * @include("template",['a1'=>'abc']) // a1 is equals to abc
-     * @include("template",[]) // a1 is equals to abc
-     * ```
-     * **Example: (includeScope=true)**<br>
-     * ```
-     * @include("template",['a1'=>'abc']) // a1 is equals to abc
-     * @include("template",[]) // a1 is not defined
-     * ```
+     * <b>Example: (includeScope=false)</b><br>
+     * include("template",['a1'=>'abc']) // a1 is equals to abc<br>
+     * include("template",[]) // a1 is equals to abc<br>
+     * <br><b>Example: (includeScope=true)</b><br>
+     * include("template",['a1'=>'abc']) // a1 is equals to abc<br>
+     * include("template",[]) // a1 is not defined<br>
      */
     public bool $includeScope = false;
     /**
@@ -251,16 +247,16 @@ class BladeOne
      *
      * @param string|null $templatePath If null then it uses (caller_folder)/views
      * @param string|null $compiledPath If null then it uses (caller_folder)/compiles
-     * @param int  $mode         =[BladeOne::MODE_AUTO,BladeOne::MODE_DEBUG,BladeOne::MODE_FAST,BladeOne::MODE_SLOW][$i]<br>
-     *                           **BladeOne::MODE_AUTO** (default mode)<br>
-     *                           **BladeOne::MODE_DEBUG** errors will be more verbose, and it will compile code every
-     *                           time<br>
-     *                           **BladeOne::MODE_FAST** it will not check if the compiled file exists<br>
-     *                           **BladeOne::MODE_SLOW** it will compile the code everytime<br>
-     * @param int  $commentMode  =[0,1,2][$i] <br>
-     *                           **0** comments are generated as php code.<br>
-     *                           **1** comments are generated as html code<br>
-     *                           **2** comments are ignored (no code is generated)<br>
+     * @param int         $mode         =[BladeOne::MODE_AUTO,BladeOne::MODE_DEBUG,BladeOne::MODE_FAST,BladeOne::MODE_SLOW][$i]<br>
+     *                                  **BladeOne::MODE_AUTO** (default mode)<br>
+     *                                  **BladeOne::MODE_DEBUG** errors will be more verbose, and it will compile code
+     *                                  every time<br>
+     *                                  **BladeOne::MODE_FAST** it will not check if the compiled file exists<br>
+     *                                  **BladeOne::MODE_SLOW** it will compile the code everytime<br>
+     * @param int         $commentMode  =[0,1,2][$i] <br>
+     *                                  **0** comments are generated as php code.<br>
+     *                                  **1** comments are generated as html code<br>
+     *                                  **2** comments are ignored (no code is generated)<br>
      */
     public function __construct($templatePath = null, $compiledPath = null, $mode = 0, $commentMode = 0)
     {
@@ -2199,7 +2195,8 @@ class BladeOne
             return $string;
         }
         $me = $this;
-        $result = preg_replace_callback('/' . $this->escapeStack0 . '\s?([A-Za-z0-9_:() ,*.@$]+)\s?' . $this->escapeStack1 . '/u',
+        // we returned the escape character.
+        return preg_replace_callback('/' . $this->escapeStack0 . '\s?([A-Za-z0-9_:() ,*.@$]+)\s?' . $this->escapeStack1 . '/u',
             static function($matches) use ($me) {
                 $l0 = strlen($me->escapeStack0);
                 $l1 = strlen($me->escapeStack1);
@@ -2208,8 +2205,6 @@ class BladeOne
                 return $me->yieldPushContent($items[0], $items[1] ?? null);
                 //return is_array($r) ? $flagtxt . json_encode($r) : $flagtxt . $r;
             }, $string);
-        // we returned the escape character.
-        return $result;
     }
 
     /**
