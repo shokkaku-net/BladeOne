@@ -35,13 +35,13 @@ use InvalidArgumentException;
  * @copyright Copyright (c) 2016-2024 Jorge Patricio Castro Castillo MIT License.
  *            Don't delete this comment, its part of the license.
  *            Part of this code is based in the work of Laravel PHP Components.
- * @version   4.16
+ * @version   4.17
  * @link      https://github.com/EFTEC/BladeOne
  */
 class BladeOne
 {
     //<editor-fold desc="fields">
-    public const VERSION = '4.16';
+    public const VERSION = '4.17';
     /** @var int BladeOne reads if the compiled file has changed. If it has changed,then the file is replaced. */
     public const MODE_AUTO = 0;
     /** @var int Then compiled file is always replaced. It's slow and it's useful for development. */
@@ -1098,7 +1098,7 @@ class BladeOne
      * @param mixed         $default
      * @return mixed
      */
-    public static function last($array, callable $callback = null, $default = null)
+    public static function last($array, ?callable $callback = null, $default = null)
     {
         if (\is_null($callback)) {
             return empty($array) ? static::value($default) : \end($array);
@@ -1125,7 +1125,7 @@ class BladeOne
      * @param mixed         $default
      * @return mixed
      */
-    public static function first($array, callable $callback = null, $default = null)
+    public static function first($array, ?callable $callback = null, $default = null)
     {
         if (\is_null($callback)) {
             return empty($array) ? static::value($default) : \reset($array);
@@ -1438,6 +1438,7 @@ class BladeOne
      * Get the mode of the engine.See BladeOne::MODE_* constants
      *
      * @return int=[self::MODE_AUTO,self::MODE_DEBUG,self::MODE_FAST,self::MODE_SLOW][$i]
+     * @noinspection PhpUndefinedConstantInspection
      */
     public function getMode(): int
     {
@@ -1668,7 +1669,7 @@ class BladeOne
         if (!\is_array($array)) {
             return $array;  // nothing to convert.
         }
-        return \implode(' ', \array_map('static::convertArgCallBack', \array_keys($array), $array));
+        return \implode(' ', \array_map('BladeOne::convertArgCallBack', \array_keys($array), $array));
     }
 
     /**
