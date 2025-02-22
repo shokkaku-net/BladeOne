@@ -2458,7 +2458,7 @@ class BladeOne
      * @param string $baseUrl Example http://www.web.com/folder  https://www.web.com/folder/anotherfolder
      * @return BladeOne
      */
-    public function setBaseUrl($baseUrl): BladeOne
+    public function setBaseUrl(string $baseUrl): BladeOne
     {
         $this->baseUrl = \rtrim($baseUrl, '/'); // base with the url trimmed
         $this->baseDomain = @parse_url($this->baseUrl)['host'];
@@ -2475,6 +2475,22 @@ class BladeOne
         } else {
             $this->relativePath = '';
         }
+        return $this;
+    }
+
+    /**
+     * It sets a CDN Url used by @assetcdn("someresource.jpg")<br>
+     * **Example:**
+     * ```
+     * $this->setCDNUrl('http://domain.dom/myblog');
+     * ```
+     *
+     * @param string $cdnurl the full path url without the trailing slash
+     * @return $this
+     */
+    public function setCDNUrl(string $cdnurl): BladeOne
+    {
+        $this->cdnUrl = $cdnurl;
         return $this;
     }
 
