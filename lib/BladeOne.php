@@ -3021,19 +3021,19 @@ class BladeOne
          * @return string
          */
         $callback = function($match) {
-            if (static::contains($match[0], 'x-')) {
+           if (isset($match[4]) && static::contains($match[0], 'x-')) {
                 $match[4] = $this->compileComponents($match[4]);
             }
             $paramsCompiled = $this->parseParams($match[2]);
             $str = "('components." . $match[1] . "'," . $paramsCompiled . ")";
-            return self::compileComponent($str) . $match[4] . self::compileEndComponent();
+            return self::compileComponent($str) . ($match[4] ?? '') . self::compileEndComponent();
         };
         return preg_replace_callback('/<x-([a-z0-9.-]+)(\s[^>]*)?(>((?:(?!<\/x-\1>).)*)<\/x-\1>|\/>)/ms', $callback, $value);
     }
 
     protected function parseParams($params): string
     {
-        preg_match_all('/([a-z-0-9:]*?)\s*?=\s*?(.+?)(\s|$)/ms', $params, $matches);
+        preg_match_all('/([a-zA-Z0-9:-]*?)\s*?=\s*?(.+?)(\s|$)/ms', $params, $matches);
         $paramsCompiled = [];
         foreach ($matches[1] as $i => $key) {
             $value = str_replace('"', '', $matches[2][$i]);
